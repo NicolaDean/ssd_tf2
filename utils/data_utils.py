@@ -4,6 +4,14 @@ import tensorflow_datasets as tfds
 from PIL import Image
 import numpy as np
 
+def custom_preprocessing(image_data, final_height, final_width, augmentation_fn=None, evaluate=False):
+
+    img = tf.image.convert_image_dtype(image_data, tf.float32)
+    img = tf.image.resize(img, (final_height, final_width))
+
+
+    return img, gt_boxes, get_labels
+
 def preprocessing(image_data, final_height, final_width, augmentation_fn=None, evaluate=False):
     """Image resizing operation handled before batch operations.
     inputs:
@@ -16,9 +24,12 @@ def preprocessing(image_data, final_height, final_width, augmentation_fn=None, e
         gt_boxes = (gt_box_size, [y1, x1, y2, x2])
         gt_labels = (gt_box_size)
     """
-    img = image_data["image"]
-    gt_boxes = image_data["objects"]["bbox"]
+
+    img       = image_data["image"]
+    gt_boxes  = image_data["objects"]["bbox"]
     gt_labels = tf.cast(image_data["objects"]["label"] + 1, tf.int32)
+    #print(gt_boxes.shape)
+
     img = tf.image.convert_image_dtype(img, tf.float32)
     img = tf.image.resize(img, (final_height, final_width))
     if evaluate:
@@ -27,6 +38,8 @@ def preprocessing(image_data, final_height, final_width, augmentation_fn=None, e
         gt_labels = gt_labels[not_diff]
     if augmentation_fn:
         img, gt_boxes = augmentation_fn(img, gt_boxes)
+
+    #print()
     return img, gt_boxes, gt_labels
 
 def get_dataset(name, split):
