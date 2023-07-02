@@ -78,9 +78,9 @@ from __future__ import division
 from __future__ import print_function
 
 from tensorflow.python.keras import backend
-from tensorflow.python.keras.applications import imagenet_utils
-from tensorflow.python.keras.engine import training
-from tensorflow.python.keras.layers import VersionAwareLayers
+from keras.applications import imagenet_utils
+from keras import Model
+from keras import layers
 from tensorflow.python.keras.utils import data_utils
 from tensorflow.python.keras.utils import layer_utils
 from tensorflow.python.lib.io import file_io
@@ -89,7 +89,6 @@ from tensorflow.python.util.tf_export import keras_export
 
 BASE_WEIGHT_PATH = ('https://storage.googleapis.com/tensorflow/'
                     'keras-applications/mobilenet_v2/')
-layers = None
 
 
 @keras_export('keras.applications.mobilenet_v2.MobileNetV2',
@@ -173,11 +172,7 @@ def MobileNetV2(input_shape=None,
     ValueError: if `classifier_activation` is not `softmax` or `None` when
       using a pretrained top layer.
   """
-  global layers
-  if 'layers' in kwargs:
-    layers = kwargs.pop('layers')
-  else:
-    layers = VersionAwareLayers()
+
   if kwargs:
     raise ValueError('Unknown argument(s): %s' % (kwargs,))
   if not (weights in {'imagenet', None} or file_io.file_exists(weights)):
@@ -391,7 +386,7 @@ def MobileNetV2(input_shape=None,
     inputs = img_input
 
   # Create model.
-  model = training.Model(inputs, x, name='mobilenetv2_%0.2f_%s' % (alpha, rows))
+  model = Model(inputs, x, name='mobilenetv2_%0.2f_%s' % (alpha, rows))
 
   # Load weights.
   if weights == 'imagenet':

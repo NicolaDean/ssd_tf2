@@ -35,6 +35,20 @@ def get_step_size(total_items, batch_size):
     return math.ceil(total_items / batch_size)
 
 
+def custom_generator(dataset, prior_boxes, hyper_params):
+    while True:
+        img, gt_boxes, gt_labels = next(dataset)
+        img       = tf.constant(img)
+        gt_boxes  = tf.constant(gt_boxes)
+        gt_labels = tf.constant(gt_labels)
+
+        actual_deltas, actual_labels = calculate_actual_outputs(prior_boxes, gt_boxes, gt_labels, hyper_params)
+
+        print(f'Img shape: {img.shape}')
+        print(f'actual_deltas Shape: {actual_deltas.shape}')
+        print(f'actual_labels Shape: {actual_labels.shape}')
+        yield img, (actual_deltas, actual_labels)
+
 def generator(dataset, prior_boxes, hyper_params):
     """Tensorflow data generator for fit method, yielding inputs and outputs.
     inputs:
@@ -50,6 +64,7 @@ def generator(dataset, prior_boxes, hyper_params):
         for image_data in dataset:
             img, gt_boxes, gt_labels = image_data
             actual_deltas, actual_labels = calculate_actual_outputs(prior_boxes, gt_boxes, gt_labels, hyper_params)
+
             yield img, (actual_deltas, actual_labels)
 
 
@@ -68,11 +83,12 @@ def calculate_actual_outputs(prior_boxes, gt_boxes, gt_labels, hyper_params):
         bbox_deltas = (batch_size, total_bboxes, [delta_y, delta_x, delta_h, delta_w])
         bbox_labels = (batch_size, total_bboxes, [0,0,...,0])
     """
-    batch_size = tf.shape(gt_boxes)[0]
-    total_labels = hyper_params["total_labels"]
-    iou_threshold = hyper_params["iou_threshold"]
-    variances = hyper_params["variances"]
+    batch_size        = 32 #tf.shape(gt_boxes)[0]
+    total_labels      = hyper_params["total_labels"]
+    iou_threshold     = hyper_params["iou_threshold"]
+    variances         = hyper_params["variances"]
     total_prior_boxes = prior_boxes.shape[0]
+
     # Calculate iou values between each bboxes and ground truth boxes
     iou_map = bbox_utils.generate_iou_map(prior_boxes, gt_boxes)
     # Get max index value for each row
