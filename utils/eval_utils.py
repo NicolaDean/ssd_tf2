@@ -19,10 +19,13 @@ def init_stats(labels):
     return stats
 
 def update_stats(pred_bboxes, pred_labels, pred_scores, gt_boxes, gt_labels, stats):
+    print(f'Pred Box shape: [{pred_bboxes.shape}]')
+    print(f'Golden Box shape: [{gt_boxes.shape}]')
     iou_map = bbox_utils.generate_iou_map(pred_bboxes, gt_boxes)
     merged_iou_map = tf.reduce_max(iou_map, axis=-1)
     max_indices_each_gt = tf.argmax(iou_map, axis=-1, output_type=tf.int32)
     sorted_ids = tf.argsort(merged_iou_map, direction="DESCENDING")
+
     #
     count_holder = tf.unique_with_counts(tf.reshape(gt_labels, (-1,)))
     for i, gt_label in enumerate(count_holder[0]):
@@ -39,6 +42,10 @@ def update_stats(pred_bboxes, pred_labels, pred_scores, gt_boxes, gt_labels, sta
             #
             iou = merged_iou_map[batch_id, sorted_id]
             gt_id = max_indices_each_gt[batch_id, sorted_id]
+            print(f'Index : {batch_id}')
+            print(f'Id : {gt_id}')
+            print(f'AAA: {gt_labels[19, 0]}')
+
             gt_label = int(gt_labels[batch_id, gt_id])
             pred_label = int(pred_label)
             score = pred_scores[batch_id, sorted_id]
@@ -85,6 +92,21 @@ def calculate_mAP(stats):
         aps.append(ap)
     mAP = np.mean(aps)
     return stats, mAP
+
+def evaluate_predictions_custom(dataset,size, pred_bboxes, pred_labels, pred_scores, labels, batch_size):
+    stats = init_stats(labels)
+    print(stats)
+    print(f'We have {size} batches')
+    for idx in tqdm(range(0,size-1)):
+        imgs, gt_boxes, gt_labels = next(dataset)
+        start = idx * batch_size
+        end = start + batch_size
+        print(f'IDX [{idx}] Start[{start}] End[{end}]')
+        batch_bboxes, batch_labels, batch_scores = pred_bboxes[start:end], pred_labels[start:end], pred_scores[start:end]
+        stats = update_stats(batch_bboxes, batch_labels, batch_scores, gt_boxes, gt_labels, stats)
+    stats, mAP = calculate_mAP(stats)
+    print("mAP: {}".format(float(mAP)))
+    return stats
 
 def evaluate_predictions(dataset, pred_bboxes, pred_labels, pred_scores, labels, batch_size):
     stats = init_stats(labels)

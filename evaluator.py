@@ -1,12 +1,39 @@
 from models.decoder import get_decoder_model
 from utils import bbox_utils, data_utils, train_utils, eval_utils
 from models.ssd_mobilenet_v2 import get_model
-
+from custom_datasets.voc import Voc,labels
 
 class Evaluator:
     def __init__(self, batch_size):
         self.evaluator = None
         self.batch_size = batch_size
+
+    def initialize(self):
+        hyper_params = train_utils.get_hyper_params()
+
+        _labels = ['bg'] + labels
+        hyper_params["total_labels"] = len(_labels)
+        
+        
+        test, test_size = Voc.get_custom_data_generator('./test')
+
+        # We calculate prior boxes for one time and use it for all operations because of the all images are the same sizes
+        prior_boxes    = bbox_utils.generate_prior_boxes(hyper_params["feature_map_shapes"], hyper_params["aspect_ratios"])
+
+        prior_boxes = bbox_utils.generate_prior_boxes(hyper_params["feature_map_shapes"], hyper_params["aspect_ratios"])
+        ssd_model = get_model(hyper_params)
+
+        def evaluator(model_path):
+            ssd_model.load_weights(model_path)
+
+            ssd_decoder_model = get_decoder_model(ssd_model, prior_boxes, hyper_params)
+
+            step_size = train_utils.get_step_size(test_size, self.batch_size)
+            pred_bboxes, pred_labels, pred_scores = ssd_decoder_model.predict(test, steps=step_size, verbose=1)
+
+            eval_utils.evaluate_predictions_custom(test, test_size, pred_bboxes, pred_labels, pred_scores, _labels, self.batch_size)
+
+        self.evaluator = evaluator
 
     def load_data(self, dataset):
         test_data, total_items, labels = dataset.test.data, dataset.test.size, dataset.labels

@@ -38,15 +38,12 @@ def get_step_size(total_items, batch_size):
 def custom_generator(dataset, prior_boxes, hyper_params):
     while True:
         img, gt_boxes, gt_labels = next(dataset)
-        img       = tf.constant(img)
-        gt_boxes  = tf.constant(gt_boxes)
-        gt_labels = tf.constant(gt_labels)
 
         actual_deltas, actual_labels = calculate_actual_outputs(prior_boxes, gt_boxes, gt_labels, hyper_params)
 
-        print(f'Img shape: {img.shape}')
-        print(f'actual_deltas Shape: {actual_deltas.shape}')
-        print(f'actual_labels Shape: {actual_labels.shape}')
+        #print(f'Img shape: {img.shape}')
+        #print(f'actual_deltas Shape: {actual_deltas.shape}')
+        #print(f'actual_labels Shape: {actual_labels.shape}')
         yield img, (actual_deltas, actual_labels)
 
 def generator(dataset, prior_boxes, hyper_params):

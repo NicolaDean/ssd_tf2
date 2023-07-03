@@ -5,7 +5,7 @@ import augmentation
 from models.ssd_mobilenet_v2 import get_model, init_model
 from ssd_loss import CustomLoss
 from utils import bbox_utils, data_utils, train_utils
-from custom_datasets.voc import Voc
+from custom_datasets.voc import Voc,labels
 
 import tqdm
 
@@ -19,8 +19,8 @@ class Trainer:
         
     def initialize_experiment(self):
         hyper_params = train_utils.get_hyper_params()
-
-        hyper_params["total_labels"] = 5
+        _labels = ["bg"] + labels
+        hyper_params["total_labels"] = len(_labels)
 
         train_data, train_size = Voc.get_custom_data_generator('./train')
         val_data  , val_size   = Voc.get_custom_data_generator('./valid')

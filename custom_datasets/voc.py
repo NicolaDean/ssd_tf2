@@ -19,7 +19,7 @@ image_size = (300, 300)
 # val_data = val_data.map(filter_features).filter(has_labels)
 
 labels_dict = {"dock":1,"boat":2,"lift":3,"jetski":4,"car":5}
-
+labels      = ['dock','boat','lift','jetski','car']
 class Voc:
     train = val = test = None
 
@@ -137,14 +137,14 @@ class Voc:
         
         for _ in range(len(bbox),20):
            bbox.append([0,0,0,0])
-           labels.append(0)
+           labels.append(-1)
         
-        return img, bbox, labels
+        return img, tf.stack(bbox), tf.stack(labels)
 
     def get_custom_data_generator(path,batch_size=32):
         #Load samples names
         sample_names = Voc.get_list_of_sample_names(path)
-        size         = len(sample_names)
+        size         = int(len(sample_names)/batch_size)
         
         return Voc.custom_data_generator(sample_names,path,batch_size),size
     
@@ -181,7 +181,7 @@ class Voc:
                 #Shuffle Data On Epoch End
                 if idx == 0:
                     random.shuffle(sample_names)
-            yield tf.stack(samples_dataset),boxes_dataset,labels_dataset
+            yield tf.stack(samples_dataset),tf.stack(boxes_dataset),tf.stack(labels_dataset)
             
             
 
