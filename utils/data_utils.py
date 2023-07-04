@@ -127,7 +127,8 @@ def get_data_shapes():
     return ([None, None, None], [None, None], [None,])
 
 def get_padding_values():
-    """Generating padding values for missing values in batch for tensorflow datasets.
+    """
+    Generating padding values for missing values in batch for tensorflow datasets.
     outputs:
         padding values = padding values with dtypes for (images, ground truth boxes, ground truth labels)
     """

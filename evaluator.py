@@ -14,13 +14,12 @@ class Evaluator:
         _labels = ['bg'] + labels
         hyper_params["total_labels"] = len(_labels)
         
-        
+
         test, test_size = Voc.get_custom_data_generator('./test')
 
         # We calculate prior boxes for one time and use it for all operations because of the all images are the same sizes
         prior_boxes    = bbox_utils.generate_prior_boxes(hyper_params["feature_map_shapes"], hyper_params["aspect_ratios"])
 
-        prior_boxes = bbox_utils.generate_prior_boxes(hyper_params["feature_map_shapes"], hyper_params["aspect_ratios"])
         ssd_model = get_model(hyper_params)
 
         def evaluator(model_path):
