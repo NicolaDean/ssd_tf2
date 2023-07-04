@@ -4,6 +4,7 @@ from lxml import etree
 import os
 import tqdm
 from PIL import Image
+from augmentation import apply as apply_aug
 
 image_size = (300, 300)
 
@@ -111,7 +112,7 @@ class Voc:
         #Extract Bounding boxes
         bbox    = []
         labels  = []
-
+        
         path = os.path.join(path, sample_name + '.xml')
         with tf.compat.v1.gfile.GFile(path, 'r') as fid:
             xml_str = fid.read()
@@ -125,22 +126,37 @@ class Voc:
                 ymin = (float(obj['bndbox']['ymin']) / ih)
                 xmax = (float(obj['bndbox']['xmax']) / iw)
                 ymax = (float(obj['bndbox']['ymax']) / ih)
-
+                
+                
                 bbox.append([xmin,ymin,xmax,ymax])
                 #Labels INFORMATION
                 label = obj['name']
                 label = labels_dict[label]
-                labels.append(label)
+                labels.append(tf.cast(label, tf.int32))
 
-                #TODO LABEL MAT DICT
-                #classes.append(label_map_dict[obj['name']])
-        
-        for _ in range(len(bbox),20):
-           bbox.append([0,0,0,0])
-           labels.append(-1)
-        
-        return img, tf.stack(bbox), tf.stack(labels)
+        bbox = tf.clip_by_value(tf.stack(bbox), clip_value_min=0, clip_value_max=1)
 
+        img, bbox = apply_aug(tf.constant(img,dtype=tf.float32),bbox)
+        return img, bbox, labels
+
+    def pad_custom_data(batch_size,boxes,labels):
+        max_len = 0
+
+        for idx in range(batch_size):
+            if len(boxes[idx]) > max_len : max_len = len(boxes[idx])
+        
+        for idx in range(batch_size):
+            for _ in range(len(boxes[idx]),max_len):
+                labels[idx] = tf.concat([labels[idx],[-1]],0)
+                boxes[idx]  = tf.concat([boxes[idx],[[0,0,0,0]]],0)
+            boxes[idx]  = tf.stack(boxes[idx])
+            labels[idx] = tf.stack(labels[idx])
+        
+        boxes  = tf.stack(boxes)
+        labels = tf.stack(labels)
+
+        return boxes,labels
+        
     def get_custom_data_generator(path,batch_size=32):
         #Load samples names
         sample_names = Voc.get_list_of_sample_names(path)
@@ -181,7 +197,10 @@ class Voc:
                 #Shuffle Data On Epoch End
                 if idx == 0:
                     random.shuffle(sample_names)
-            yield tf.stack(samples_dataset),tf.stack(boxes_dataset),tf.stack(labels_dataset)
+            
+            boxes_dataset,labels_dataset = Voc.pad_custom_data(batch_size,boxes_dataset,labels_dataset)
+
+            yield tf.stack(samples_dataset),boxes_dataset, labels_dataset
             
             
 
