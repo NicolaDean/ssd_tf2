@@ -14,7 +14,6 @@ labels      = ['dock','boat','lift','jetski','car']
 
 labels_dict = {"fish":1,"jellyfish":2,"penguin":3,"shark":4,"puffin":5,"stingray":6,"starfish":7}
 labels      = ['fish', 'jellyfish', 'penguin', 'shark', 'puffin', 'stingray','starfish']
-
 class Voc:
     train = val = test = None
 

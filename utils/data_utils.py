@@ -16,9 +16,12 @@ def preprocessing(image_data, final_height, final_width, augmentation_fn=None, e
         gt_boxes = (gt_box_size, [y1, x1, y2, x2])
         gt_labels = (gt_box_size)
     """
-    img = image_data["image"]
-    gt_boxes = image_data["objects"]["bbox"]
+
+    img       = image_data["image"]
+    gt_boxes  = image_data["objects"]["bbox"]
     gt_labels = tf.cast(image_data["objects"]["label"] + 1, tf.int32)
+    #print(gt_boxes.shape)
+
     img = tf.image.convert_image_dtype(img, tf.float32)
     img = tf.image.resize(img, (final_height, final_width))
     if evaluate:
@@ -27,9 +30,11 @@ def preprocessing(image_data, final_height, final_width, augmentation_fn=None, e
         gt_labels = gt_labels[not_diff]
     if augmentation_fn:
         img, gt_boxes = augmentation_fn(img, gt_boxes)
+
+    #print()
     return img, gt_boxes, gt_labels
 
-def get_dataset(name, split, data_dir="~/tensorflow_datasets"):
+def get_dataset(name, split):
     """Get tensorflow dataset split and info.
     inputs:
         name = name of the dataset, voc/2007, voc/2012, etc.
@@ -40,8 +45,7 @@ def get_dataset(name, split, data_dir="~/tensorflow_datasets"):
         dataset = tensorflow dataset split
         info = tensorflow dataset info
     """
-    assert split in ["train", "train+validation", "validation", "test"]
-    dataset, info = tfds.load(name, split=split, data_dir=data_dir, with_info=True)
+    dataset, info = tfds.load(name, split=split, with_info=True)
     return dataset, info
 
 def get_total_item_size(info, split):
@@ -115,7 +119,8 @@ def get_data_shapes():
     return ([None, None, None], [None, None], [None,])
 
 def get_padding_values():
-    """Generating padding values for missing values in batch for tensorflow datasets.
+    """
+    Generating padding values for missing values in batch for tensorflow datasets.
     outputs:
         padding values = padding values with dtypes for (images, ground truth boxes, ground truth labels)
     """

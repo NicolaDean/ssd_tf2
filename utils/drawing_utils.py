@@ -72,9 +72,13 @@ def draw_bboxes_with_labels(img, bboxes, label_indices, probs, labels):
     plt.imshow(image)
     plt.show()
 
+def draw_img_prediction(img, pred_bboxes, pred_labels, pred_scores, labels, batch_size):
+    denormalized_bboxes = bbox_utils.denormalize_bboxes(pred_bboxes, 300, 300)
+    draw_bboxes_with_labels(img, denormalized_bboxes, pred_labels, pred_scores, labels)
+
 def draw_predictions(dataset, pred_bboxes, pred_labels, pred_scores, labels, batch_size):
-    for batch_id, image_data in enumerate(dataset):
-        imgs, _, _ = image_data
+    for batch_id, imgs in enumerate(dataset):
+        #imgs, _, _ = image_data
         img_size = imgs.shape[1]
         start = batch_id * batch_size
         end = start + batch_size

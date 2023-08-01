@@ -1,48 +1,26 @@
-import tensorflow as tf
 import math
+
+import tensorflow as tf
+
 from utils import bbox_utils
 
-SSD = {
-    "vgg16": {
-        "img_size": 300,
-        "feature_map_shapes": [38, 19, 10, 5, 3, 1],
-        "aspect_ratios": [[1., 2., 1./2.],
-                         [1., 2., 1./2., 3., 1./3.],
-                         [1., 2., 1./2., 3., 1./3.],
-                         [1., 2., 1./2., 3., 1./3.],
-                         [1., 2., 1./2.],
-                         [1., 2., 1./2.]],
-    },
-    "mobilenet_v2": {
+
+def get_hyper_params():
+    return {
         "img_size": 300,
         "feature_map_shapes": [19, 10, 5, 3, 2, 1],
-        "aspect_ratios": [[1., 2., 1./2.],
-                         [1., 2., 1./2., 3., 1./3.],
-                         [1., 2., 1./2., 3., 1./3.],
-                         [1., 2., 1./2., 3., 1./3.],
-                         [1., 2., 1./2.],
-                         [1., 2., 1./2.]],
+        "aspect_ratios": [[1., 2., 1. / 2.],
+                          [1., 2., 1. / 2., 3., 1. / 3.],
+                          [1., 2., 1. / 2., 3., 1. / 3.],
+                          [1., 2., 1. / 2., 3., 1. / 3.],
+                          [1., 2., 1. / 2.],
+                          [1., 2., 1. / 2.]],
+        "iou_threshold": 0.5,
+        "neg_pos_ratio": 3,
+        "loc_loss_alpha": 1,
+        "variances": [0.1, 0.1, 0.2, 0.2]
     }
-}
 
-def get_hyper_params(backbone, **kwargs):
-    """Generating hyper params in a dynamic way.
-    inputs:
-        **kwargs = any value could be updated in the hyper_params
-
-    outputs:
-        hyper_params = dictionary
-    """
-    hyper_params = SSD[backbone]
-    hyper_params["iou_threshold"] = 0.5
-    hyper_params["neg_pos_ratio"] = 3
-    hyper_params["loc_loss_alpha"] = 1
-    hyper_params["variances"] = [0.1, 0.1, 0.2, 0.2]
-    for key, value in kwargs.items():
-        if key in hyper_params and value:
-            hyper_params[key] = value
-    #
-    return hyper_params
 
 def scheduler(epoch):
     """Generating learning rate value for a given epoch.
@@ -59,16 +37,21 @@ def scheduler(epoch):
     else:
         return 1e-5
 
-def get_step_size(total_items, batch_size):
-    """Get step size for given total item size and batch size.
-    inputs:
-        total_items = number of total items
-        batch_size = number of batch size during training or validation
 
-    outputs:
-        step_size = number of step size for model training
-    """
+def get_step_size(total_items, batch_size):
     return math.ceil(total_items / batch_size)
+
+
+def custom_generator(dataset, prior_boxes, hyper_params):
+    while True:
+        img, gt_boxes, gt_labels = next(dataset)
+
+        actual_deltas, actual_labels = calculate_actual_outputs(prior_boxes, gt_boxes, gt_labels, hyper_params)
+
+        #print(f'Img shape: {img.shape}')
+        #print(f'actual_deltas Shape: {actual_deltas.shape}')
+        #print(f'actual_labels Shape: {actual_labels.shape}')
+        yield img, (actual_deltas, actual_labels)
 
 def generator(dataset, prior_boxes, hyper_params):
     """Tensorflow data generator for fit method, yielding inputs and outputs.
@@ -85,7 +68,9 @@ def generator(dataset, prior_boxes, hyper_params):
         for image_data in dataset:
             img, gt_boxes, gt_labels = image_data
             actual_deltas, actual_labels = calculate_actual_outputs(prior_boxes, gt_boxes, gt_labels, hyper_params)
+
             yield img, (actual_deltas, actual_labels)
+
 
 def calculate_actual_outputs(prior_boxes, gt_boxes, gt_labels, hyper_params):
     """Calculate ssd actual output values.
@@ -102,11 +87,12 @@ def calculate_actual_outputs(prior_boxes, gt_boxes, gt_labels, hyper_params):
         bbox_deltas = (batch_size, total_bboxes, [delta_y, delta_x, delta_h, delta_w])
         bbox_labels = (batch_size, total_bboxes, [0,0,...,0])
     """
-    batch_size = tf.shape(gt_boxes)[0]
-    total_labels = hyper_params["total_labels"]
-    iou_threshold = hyper_params["iou_threshold"]
-    variances = hyper_params["variances"]
+    batch_size        = 32 #tf.shape(gt_boxes)[0]
+    total_labels      = hyper_params["total_labels"]
+    iou_threshold     = hyper_params["iou_threshold"]
+    variances         = hyper_params["variances"]
     total_prior_boxes = prior_boxes.shape[0]
+
     # Calculate iou values between each bboxes and ground truth boxes
     iou_map = bbox_utils.generate_iou_map(prior_boxes, gt_boxes)
     # Get max index value for each row
