@@ -13,7 +13,7 @@ def get_model(hyper_params):
         ssd_model = tf.keras.model
     """
     img_size = hyper_params["img_size"]
-    base_model = MobileNetV2(include_top=False, input_shape=(img_size, img_size, 3))
+    base_model = MobileNetV2(include_top=False,weights="imagenet", input_shape=(img_size, img_size, 3))
     input = base_model.input
     first_conv = base_model.get_layer("block_13_expand_relu").output
     second_conv = base_model.output

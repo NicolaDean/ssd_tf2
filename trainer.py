@@ -22,7 +22,7 @@ class Trainer:
         _labels = ["bg"] + labels
         hyper_params["total_labels"] = len(_labels)
 
-        train_data, train_size = Voc.get_custom_data_generator('./train')
+        train_data, train_size = Voc.get_custom_data_generator('./train',augmentation_func=augmentation.apply)
         val_data  , val_size   = Voc.get_custom_data_generator('./valid')
 
         # We calculate prior boxes for one time and use it for all operations because of the all images are the same sizes

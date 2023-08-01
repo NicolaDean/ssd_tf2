@@ -19,8 +19,14 @@ image_size = (300, 300)
 # train_data = train_data.map(filter_features).filter(has_labels)
 # val_data = val_data.map(filter_features).filter(has_labels)
 
+
 labels_dict = {"dock":1,"boat":2,"lift":3,"jetski":4,"car":5}
 labels      = ['dock','boat','lift','jetski','car']
+'''
+
+labels_dict = {"fish":1,"jellyfish":2,"penguin":3,"shark":4,"puffin":5,"stingray":6,"starfish":7}
+labels      = ['fish', 'jellyfish', 'penguin', 'shark', 'puffin', 'stingray','starfish']
+'''
 class Voc:
     train = val = test = None
 
@@ -98,11 +104,10 @@ class Voc:
         samples   = list(samples)
         return samples
 
-    def load_sample_by_name(path,sample_name,input_shape=image_size,img_extension='.jpg'):
+    def load_sample_by_name(path,sample_name,augmentation_func=None,input_shape=image_size,img_extension='.jpg'):
         img_name= os.path.join(path, sample_name + img_extension)
 
         image = Image.open(img_name)
-        iw, ih = image.size
         height, width = input_shape
 
         #Resize Image
@@ -118,7 +123,10 @@ class Voc:
             xml_str = fid.read()
         xml = etree.fromstring(xml_str)
         data = recursive_parse_xml_to_dict(xml)['annotation']
-    
+
+        iw = int(data['size']['width'])
+        ih = int(data['size']['height'])
+
         if 'object' in data:
             for obj in data['object']:
                 #BOX INFORMATION
@@ -135,8 +143,8 @@ class Voc:
                 labels.append(tf.cast(label, tf.int32))
 
         bbox = tf.clip_by_value(tf.stack(bbox), clip_value_min=0, clip_value_max=1)
-
-        img, bbox = apply_aug(tf.constant(img,dtype=tf.float32),bbox)
+        if augmentation_func:
+            img, bbox = augmentation_func(tf.constant(img,dtype=tf.float32),bbox)
         return img, bbox, labels
 
     def pad_custom_data(batch_size,boxes,labels):
@@ -157,14 +165,14 @@ class Voc:
 
         return boxes,labels
         
-    def get_custom_data_generator(path,batch_size=32):
+    def get_custom_data_generator(path,batch_size=32,augmentation_func=None):
         #Load samples names
         sample_names = Voc.get_list_of_sample_names(path)
         size         = int(len(sample_names)/batch_size)
         
-        return Voc.custom_data_generator(sample_names,path,batch_size),size
+        return Voc.custom_data_generator(sample_names,path,batch_size,augmentation_func),size
     
-    def custom_data_generator(sample_names,path,batch_size=32):
+    def custom_data_generator(sample_names,path,batch_size=32,augmentation_func=None):
         import random
 
         #Shuffle Data
@@ -176,18 +184,13 @@ class Voc:
         while True:
             #Extract sample data
 
-            '''
-            sample,boxes,labels = Voc.load_sample_by_name(path,sample_names[idx])
-            idx = (idx+1) % size
-            yield sample,boxes,labels
-            '''
             samples_dataset = []
             boxes_dataset   = []
             labels_dataset  = []
             #Create a batch of data
             for b in range(batch_size):
                 #Extract sample data
-                sample,boxes,labels = Voc.load_sample_by_name(path,sample_names[idx])
+                sample,boxes,labels = Voc.load_sample_by_name(path,sample_names[idx],augmentation_func)
 
                 samples_dataset.append(sample)
                 boxes_dataset  .append(boxes)

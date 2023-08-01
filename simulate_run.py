@@ -3,7 +3,7 @@ from trainer import Trainer
 
 
 batch_size = 32
-epochs = 10
+epochs = 100
 
 from custom_datasets import Voc
 
@@ -45,6 +45,6 @@ print(f'img shape: {imgs[0].shape}')
 
 pred_bboxes, pred_labels, pred_scores = ssd_decoder_model.predict(imgs,verbose=1)
 
-print(pred_bboxes)
+#print(pred_bboxes)
 drawing_utils.draw_img_prediction(imgs[0],pred_bboxes[0],pred_labels[0],pred_scores[0],_labels,batch_size)
 
